@@ -1,0 +1,15 @@
+cdapio/cdap
+cdapio/cdap-operator
+cdapio/cdap-security-extn
+cdapio/hydrator-plugins
+cdap-solutions/mmds
+cdap-solutions/dre
+data-integrations/wrangler
+data-integrations/google-cloud
+data-integrations/kafka-plugins
+data-integrations/amazon-s3-plugins
+data-integrations/azure
+data-integrations/condition-plugins
+data-integrations/delta
+data-integrations/bigquery-delta-plugins
+data-integrations/database-delta-plugins
