@@ -1,2 +1,2 @@
-brew install github/gh/gh
 gh repo view cdapio/cdap
+pip3 install jira
