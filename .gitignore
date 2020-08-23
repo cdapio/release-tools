@@ -1,4 +1,5 @@
 *.txt
-workspace/**
+workspace_**/**
 .vscode/**
 *.rst
+*.tsv
