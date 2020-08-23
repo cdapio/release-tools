@@ -24,7 +24,7 @@ class ReleaseNote():
 def createHeader(text):
     """ Create an RST style section header    """
 
-    return ['', text, '='*len(text)]
+    return ['', text, '-'*len(text)]
 
 
 def parseArgs():
