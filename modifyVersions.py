@@ -105,7 +105,7 @@ def removeSnapshot(repo, version):
 
             # If the user does not skip this pom file then we cannot recover, we need to quit and delete the repo to undo all changes so far
             print("This script expects all repos to be in the SNAPSHOT stage. All changes to this repo (%s) will be reverted and it will be skipped." % repo)
-            deleteLocalRepo(repo)
+            git.deleteLocalRepo(repo)
             return
 
         # Check if the CDAP dependancy is a SNAPSHOT version
@@ -119,7 +119,7 @@ def removeSnapshot(repo, version):
 
                 # If the user does not want to update this dependacy then we need to skip this repo, we do not allow a release with a SNAPSHOT dependancy
                 if not autoUpdate:
-                    deleteLocalRepo(repo)
+                    git.deleteLocalRepo(repo)
                     return
                 newCdapVersion = '<version>%s</version>' % cdapVersion.replace("-SNAPSHOT", '')
                 pom = re.sub(pomCDAPVersionRegex, newCdapVersion, pom, 1, re.MULTILINE)
@@ -166,7 +166,7 @@ def bumpVersionToSnapshot(repo, version):
         versionParts = version.split(".")
         releaseBranch = "release/%s.%s" % (versionParts[0], versionParts[1])
 
-    message="Bumping versions in repo '%s' on branch '%s'"%(repo. branch)
+    message="Bumping versions in repo '%s' on branch '%s'"%(repo, releaseBranch)
     printHeader(message)
 
     # Checkout branches
@@ -195,7 +195,7 @@ def bumpVersionToSnapshot(repo, version):
 
             # If the user chooses not to skip then we need to delete changes to this repo and skip it
             print("This script expects all repos to be in a non-SNAPSHOT stage. All changes to this repo (%s) will be reverted and it will be skipped." % repo)
-            deleteLocalRepo(repo)
+            git.deleteLocalRepo(repo)
             return
 
         # Calculate new version and replace it
@@ -257,7 +257,7 @@ def updateSubmodules(version):
             print("PR for updating submodules in %s: %s" % (repo, url))
             input("Press Enter once the PR is reviewed and merged...")
         else:
-            deleteLocalRepo(changeBranch)  # If no changes were made then no need to create a PR, just delete the repo to undo changes
+            git.deleteLocalRepo(changeBranch)  # If no changes were made then no need to create a PR, just delete the repo to undo changes
 
 
 def updateModulesAndCheck(repo):
