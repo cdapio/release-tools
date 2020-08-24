@@ -3,6 +3,7 @@ import jira
 import os
 import sys
 import argparse
+from urllib.parse import quote
 
 jiraURL = 'https://issues.cask.co/'
 jiraAgentUsername = 'releaseAgent'
@@ -67,6 +68,7 @@ def main():
     args = parseArgs()
     version = args.version
     issueFilter = 'project in (CDAP, "CDAP Plugins") AND fixVersion = %s AND "Release Notes" is not EMPTY' % version
+    issueFilterNoReleaseNotes = 'project in (CDAP, "CDAP Plugins") AND fixVersion = %s AND "Release Notes" is EMPTY' % version
     issueFields = 'status,resolution,issuetype,Release Notes'
 
     # Attempt to get JIRA agent password for GCP Secret Manager
@@ -106,6 +108,7 @@ def main():
     print("DEBUG: JIRA Agent created successfully!")
     print("DEBUG: Searching for JIRA tickets with 'Fix Version = %s'" % version)
     searchResults = agent.search_issues(issueFilter, maxResults=1000, fields=issueFields, json_result=True)
+    noReleaseNotesResults = agent.search_issues(issueFilterNoReleaseNotes, maxResults=1000, fields=issueFields, json_result=True)
 
     print("DEBUG: Found %d issues with release notes for version %s" % (searchResults['total'], version))
 
@@ -154,6 +157,14 @@ def main():
     outputFile.writelines(contentLines)
     outputFile.close()
 
+    
+    if noReleaseNotesResults['total'] > 0:
+        issueId = noReleaseNotesResults['issues'][0]['key']
+        url = '%sbrowse/%s?jql=%s'%(jiraURL, issueId, quote(issueFilterNoReleaseNotes))
+        print("\nWARN: Found %d tickets with Fix Version %s but no release notes!"%(noReleaseNotesResults['total'], version))
+        print("WARN: Go to this URL to see the issues without release notes: %s"%url)
+
+    
     print("DEBUG: Done! Generated release notes in file '%s'" % filename)
     return 0
 

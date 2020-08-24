@@ -223,7 +223,7 @@ def createArtifactLicenseMap(data):
     return artifactLicenseMap
 
 
-def createCDAPLicenses(version):
+def createCDAPLicenses(version, existingLicensesMap):
     """ Fetches and populates license files for all CDAP third party dependencies for a given version """
 
     global localArtifactUrlMap
@@ -286,15 +286,27 @@ def createCDAPLicenses(version):
         missingLicenses.append('%s\t%s\t%s' % (artifact, 'no url defined', lic))
 
     # Clean the raw data and fetch the base64 encoded license contents
-    parsedData = convertToGithubURLs(parsedData)
+    dataToBeFetched = []
+    alreadyExistingData = []
+    for triple in parsedData:
+        if triple[0] in existingLicensesMap:
+            alreadyExistingData.append(triple)
+        else:
+            dataToBeFetched.append(triple)
+
+    parsedData = convertToGithubURLs(dataToBeFetched) + alreadyExistingData
     artifactLicenseMap = createArtifactLicenseMap(parsedData)
 
     summaryFileLines = []
     for artifact, url, lic in parsedData:
         summaryFileLines.append('%s\t%s\t%s' % (artifact, url, lic))
 
+        if artifact in existingLicensesMap:
+            existingLicensesMap[artifact] = True
+            continue
+
         if artifact not in artifactLicenseMap:
-            print('WARN: Could not find license for %s' % artifact)
+            print('WARN: %s - Could not find license' % artifact)
             missingLicenses.append('%s\t%s\t%s' % (artifact, url, lic))
             continue
 
@@ -302,9 +314,10 @@ def createCDAPLicenses(version):
         try:
             licenseContents = base64.decodebytes(licenseContents.encode('utf-8')).decode('utf-8')
         except Exception as e:
-            print('WARN - Failed to decode license for %s. The license will be used as-is.' % artifact)
+            print('WARN: %s - Failed to decode license. The license will be used as-is.' % artifact)
 
-        print("DEBUG: Writing copyright for %s" % artifact)
+        print("DEBUG: %s - Writing copyright" % artifact)
+
         # Generate filepath and ensure the directories are created for that path
         copyrightFilePath = path.join(cdapCopyrightPath, artifact, 'COPYRIGHT')
         os.makedirs(path.dirname(copyrightFilePath), exist_ok=True)
@@ -327,7 +340,7 @@ def createCDAPLicenses(version):
     return len(summaryFileLines)-len(missingLicenses), len(missingLicenses)
 
 
-def createUILicenses(version):
+def createUILicenses(version, existingLicensesMap):
     """ Fetches and populates license files for all UI third party dependencies for a given version """
 
     printHeader("Generating licenses for UI")
@@ -399,6 +412,10 @@ def createUILicenses(version):
             srcFilePath = licObj['licenseFile']
 
         summaryFileLines.append('%s\t%s\t%s' % (artifact, url, lic))
+
+        if artifact in existingLicensesMap:
+            existingLicensesMap[artifact] = True
+            continue
 
         # Make sure the local copy of the license exists, if it doesnt then mark this license as missing
         if not path.exists(srcFilePath):
@@ -479,11 +496,19 @@ def main():
     # Create a new branch in cdap repo for changes and delete the existing copyright folder
     changeBranch = "release-update-license-%s" % version.replace('.', '')
     git.checkoutBranch(cdapRepo, changeBranch, createBranch=True)
-    shutil.rmtree(cdapCopyrightPath)
+    alreadyExistingLicenses=os.listdir(cdapCopyrightPath)
+    existingLicensesUsedMap={l:False for l in alreadyExistingLicenses} # This map will be used to skip licenses that are already present
 
     # Populate licenses for CDAP and UI
-    cdapAdded, cdapFailed = createCDAPLicenses(version)
-    uiAdded, uiFailed = createUILicenses(version)
+    cdapAdded, cdapFailed = createCDAPLicenses(version, existingLicensesUsedMap)
+    uiAdded, uiFailed = createUILicenses(version, existingLicensesUsedMap)
+
+    # Delete licenses that are no longer needed
+    for licenseFolder, used in existingLicensesUsedMap.items():
+        if used:
+            continue
+        print("DEBUG: %s - Deleted unused license file"%licenseFolder)
+        shutil.rmtree(path.join(cdapCopyrightPath, licenseFolder))
 
     # Collect final numbers
     added = cdapAdded+uiAdded

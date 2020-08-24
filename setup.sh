@@ -1,2 +1,2 @@
-gh repo view cdapio/cdap
+./gh repo view
 pip3 install jira
