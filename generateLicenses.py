@@ -296,13 +296,14 @@ def createCDAPLicenses(version, existingLicensesMap):
 
     parsedData = convertToGithubURLs(dataToBeFetched) + alreadyExistingData
     artifactLicenseMap = createArtifactLicenseMap(parsedData)
-
+    added = 0
     summaryFileLines = []
     for artifact, url, lic in parsedData:
         summaryFileLines.append('%s\t%s\t%s' % (artifact, url, lic))
 
         if artifact in existingLicensesMap:
             existingLicensesMap[artifact] = True
+            added += 1
             continue
 
         if artifact not in artifactLicenseMap:
@@ -326,6 +327,7 @@ def createCDAPLicenses(version, existingLicensesMap):
         copyrightFile = open(copyrightFilePath, 'w')
         copyrightFile.write(licenseContents)
         copyrightFile.close()
+        added += 1
 
     # Write the output summary files
     summaryFile = open(dependencySumFilePath, 'w')
@@ -337,7 +339,7 @@ def createCDAPLicenses(version, existingLicensesMap):
     missingFile.close()
 
     # return #SuccessfullyAdded, #Failed
-    return len(summaryFileLines)-len(missingLicenses), len(missingLicenses)
+    return added, len(missingLicenses)
 
 
 def createUILicenses(version, existingLicensesMap):
@@ -394,6 +396,7 @@ def createUILicenses(version, existingLicensesMap):
 
     missingLicenses = []
     summaryFileLines = []
+    added = 0
     for artifact in uiLicenses:
         licObj = uiLicenses[artifact]
 
@@ -415,6 +418,7 @@ def createUILicenses(version, existingLicensesMap):
 
         if artifact in existingLicensesMap:
             existingLicensesMap[artifact] = True
+            added += 1
             continue
 
         # Make sure the local copy of the license exists, if it doesnt then mark this license as missing
@@ -428,6 +432,7 @@ def createUILicenses(version, existingLicensesMap):
         copyrightFilePath = path.join(cdapCopyrightPath, artifact, 'COPYRIGHT')
         os.makedirs(path.dirname(copyrightFilePath), exist_ok=True)
         shutil.copyfile(srcFilePath, copyrightFilePath)
+        added += 1
 
     # Append results to the summary files already started by createCDAPLicenses()
     summaryFile = open(dependencySumFilePath, 'a')
@@ -439,7 +444,7 @@ def createUILicenses(version, existingLicensesMap):
     missingFile.close()
 
     # return #SuccessfullyAdded, #Failed
-    return len(summaryFileLines)-len(missingLicenses), len(missingLicenses)
+    return added, len(missingLicenses)
 
 
 def parseArgs():
@@ -496,8 +501,8 @@ def main():
     # Create a new branch in cdap repo for changes and delete the existing copyright folder
     changeBranch = "release-update-license-%s" % version.replace('.', '')
     git.checkoutBranch(cdapRepo, changeBranch, createBranch=True)
-    alreadyExistingLicenses=os.listdir(cdapCopyrightPath)
-    existingLicensesUsedMap={l:False for l in alreadyExistingLicenses} # This map will be used to skip licenses that are already present
+    alreadyExistingLicenses = os.listdir(cdapCopyrightPath)
+    existingLicensesUsedMap = {l: False for l in alreadyExistingLicenses}  # This map will be used to skip licenses that are already present
 
     # Populate licenses for CDAP and UI
     cdapAdded, cdapFailed = createCDAPLicenses(version, existingLicensesUsedMap)
@@ -507,7 +512,7 @@ def main():
     for licenseFolder, used in existingLicensesUsedMap.items():
         if used:
             continue
-        print("DEBUG: %s - Deleted unused license file"%licenseFolder)
+        print("DEBUG: %s - Deleted unused license file" % licenseFolder)
         shutil.rmtree(path.join(cdapCopyrightPath, licenseFolder))
 
     # Collect final numbers
