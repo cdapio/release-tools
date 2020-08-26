@@ -235,7 +235,7 @@ def deleteLocalRepo(repo):
 
     print("Reverting repo %s" % repo)
     repoPath = getRepoPath(repo)
-    shutil.rmtree(repoPath)
+    shutil.rmtree(repoPath, ignore_errors=True)
     print("Revert of %s is complete, please resolve this issue and try again. You may edit the repos.txt file to only target this affected repo in future runs." % repo)
 
 def mapBranchVersionsRecurse(version, repo="cdapio/cdap-build"):

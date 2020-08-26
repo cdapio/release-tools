@@ -37,6 +37,11 @@ def parseArgs():
     parser.add_argument('version',
                         type=str,
                         help='Version string to generate release notes for. Ex. 6.1.4')
+    
+    parser.add_argument('username',
+                        type=str,
+                        help='The username to use for authenticating with JIRA to fetch the release notes. You will be promoted for the password once the script is running.',
+                        nargs='?')
 
     parser.add_argument('-o', '--output',
                         type=str,
@@ -57,20 +62,18 @@ def parseArgs():
                         help='Advanced use only. The ID the Jira agent password in the Secret Manager.',
                         default='JiraPassword')
 
+    parser.add_argument('--overrideUser',
+                        action='store_true',
+                        help='Advanced use only. Use the predefined JIRA ReleaseAgent account.',)
+
     args = parser.parse_args()
+    if args.username is None and not args.overrideUser :
+        sys.stderr.write("ERROR: Username is a required paramater, please specify a JIRA username to use for fetching tickets.\n")
+        sys.exit(1)
     return args
 
-
-def main():
-    """ Main function that does all the work """
-
-    # Parse command args and setup constants
-    args = parseArgs()
-    version = args.version
-    issueFilter = 'project in (CDAP, "CDAP Plugins") AND fixVersion = %s AND "Release Notes" is not EMPTY' % version
-    issueFilterNoReleaseNotes = 'project in (CDAP, "CDAP Plugins") AND fixVersion = %s AND "Release Notes" is EMPTY' % version
-    issueFields = 'status,resolution,issuetype,Release Notes'
-
+def getAgentPassword(args):
+    password = None
     # Attempt to get JIRA agent password for GCP Secret Manager
     try:
         print("DEBUG: Fetching credentials for JIRA Agent.")
@@ -93,18 +96,50 @@ def main():
             sys.stderr.write(
                 "ERROR: Secret Manager API is not enabled in project '%s'. This API is required to fetch the credentials for the Jira agent.\n"
                 % args.passwordProject)
-            return code
+            return None
 
         # Fetch the password
-        jiraAgentPassword = subprocess.check_output(gcloudGetPasswordCommand, shell=True).decode('utf-8')
+        password = subprocess.check_output(gcloudGetPasswordCommand, shell=True).decode('utf-8')
     except Exception as e:
         sys.stderr.write("ERROR: '%s' returned an error\n" % gcloudGetPasswordCommand)
         sys.stderr.write(
             "ERROR: Unable to retreive JIRA Agent password from Google Cloud Secret Manager. Ensure correct project, version and password ID are being used.\n")
+        return None
+    return password
+
+def main():
+    """ Main function that does all the work """
+    global jiraAgentUsername
+
+    # Parse command args and setup constants
+    args = parseArgs()
+    version = args.version
+    issueFilter = 'project in (CDAP, "CDAP Plugins") AND fixVersion = %s AND "Release Notes" is not EMPTY' % version
+    issueFilterNoReleaseNotes = 'project in (CDAP, "CDAP Plugins") AND fixVersion = %s AND "Release Notes" is EMPTY' % version
+    issueFields = 'status,resolution,issuetype,Release Notes'
+
+    # Getting the password depending if we are overriding the user
+    if args.overrideUser:
+        jiraAgentPassword = getAgentPassword(args)
+        if jiraAgentPassword is None:
+            return 1
+    else:
+        jiraAgentUsername = args.username
+        jiraAgentPassword = input("Enter password for JIRA user '%s': "%jiraAgentUsername)
+    
+
+    # Try to init agent
+    try:
+        agent = jira.JIRA(jiraURL, auth=(jiraAgentUsername, jiraAgentPassword))
+    except Exception as e:
+        errorMessage = e
+        try:
+            errorMessage = e.response.content.decode("utf-8") #Get the response out of the JiraError
+        except Exception as r:
+            pass
+        sys.stderr.write("ERROR: Failed to login to JIRA using account '%s': %s\n"%(jiraAgentUsername,errorMessage))
         return 1
 
-    # Init agent and get search results
-    agent = jira.JIRA(jiraURL, auth=(jiraAgentUsername, jiraAgentPassword))
     print("DEBUG: JIRA Agent created successfully!")
     print("DEBUG: Searching for JIRA tickets with 'Fix Version = %s'" % version)
     searchResults = agent.search_issues(issueFilter, maxResults=1000, fields=issueFields, json_result=True)
