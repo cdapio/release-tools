@@ -3,6 +3,8 @@
 Ensure you have the following components installed before proceeding:
 * Python 3 (with pip)
 * Git
+* Run [setup.sh](/setup.sh)
+
 ## Introduction
 This repository contains tools for automating the tedious and error-prone tasks that are a part of CDAP OSS Release. So far the following processes have be automated:
 
@@ -24,9 +26,10 @@ The script expects two arguments:
 `modifyVersions.py [version] {remove_snapshot, bump_to_snapshot}`
 
 * **version:** The version string for the current release. This will be used to determine which release branches should be changed (ex. 6.1.4)
-* **remove_snapshot** or **bump_to_version**: This determine which operation should be performed
+* **remove_snapshot** or **bump_to_version**: This determines which operation should be performed: 
+
   * **remove_snapshot**:  This should be run **before** a release. This will ensure all `-SNAPSHOT` versions are updated to the next non-SNAPSHOT version in preparation for building and releasing.
-* **bump_to_snapshot**:  This should be run **after** a release. This will ensure all versions are updated to the next `-SNAPSHOT` version to allow development to continue on that branch for the next patch release
+  * **bump_to_snapshot**:  This should be run **after** a release. This will ensure all versions are updated to the next `-SNAPSHOT` version to allow development to continue on that branch for the next patch release
 
 ## Generate Release Notes
 The **[generateReleaseNotes](/generateReleaseNotes.py)** script automatically extracts Release Notes from all JIRA tickets targeted for this release and compiles the result into a reStructuredText file (`.rst`). A small example of the generated rst file can be seen below:
@@ -63,7 +66,7 @@ The **[generateLicenses](/generateLicenses.py)** script automatically collects t
 * **missingSummary.tsv**: which contains the details for dependencies that could not be processed automatically. This almost always occurs because the license could not found at the source code URL. The best way to resolve this issue is to manually find the correct GitHub repo (or direct link to the license file) and add it to the **[artifactToRepoMap file](/artifactToRepoMap.csv)**. Be sure to remove the version number from the artifact name before adding it to the mapping file. Once the mapping file is updated you can rerun the script to generate all licenses.
 
 ### Usage
-The script expects one argument:
+The script expects one argument with one optional flag:
 
 `generateLicenses.py [version] [--output-path OUTPUT_PATH]`
 
