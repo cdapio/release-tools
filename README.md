@@ -26,10 +26,11 @@ The script expects two arguments:
 `modifyVersions.py [version] {remove_snapshot, bump_to_snapshot}`
 
 * **version:** The version string for the current release. This will be used to determine which release branches should be changed (ex. 6.1.4)
-* **remove_snapshot** or **bump_to_version**: This determines which operation should be performed: 
+* **remove_snapshot**, **bump_to_version** or **update_submodules**: This determines which operation should be performed: 
 
-  * **remove_snapshot**:  This should be run **before** a release. This will ensure all `-SNAPSHOT` versions are updated to the next non-SNAPSHOT version in preparation for building and releasing.
-  * **bump_to_snapshot**:  This should be run **after** a release. This will ensure all versions are updated to the next `-SNAPSHOT` version to allow development to continue on that branch for the next patch release
+  * **remove_snapshot**:  This should be run **before** a release. This will ensure all `-SNAPSHOT` versions are updated to the next non-SNAPSHOT version in preparation for building and releasing. This operation also runs update_submodules to ensure everything is synced.
+  * **bump_to_snapshot**:  This should be run **after** a release. This will ensure all versions are updated to the next `-SNAPSHOT` version to allow development to continue on that branch for the next patch release. This operation also runs update_submodules to ensure everything is synced.
+  * **update_submodules**:  This can be run at any time. This will update the submodules in all repos to use the newest commit from their respective repo and branch. 
 
 ## Generate Release Notes
 The **[generateReleaseNotes](/generateReleaseNotes.py)** script automatically extracts Release Notes from all JIRA tickets targeted for this release and compiles the result into a reStructuredText file (`.rst`). A small example of the generated rst file can be seen below:
