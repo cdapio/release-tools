@@ -23,7 +23,7 @@ The **[modifyVersions](/modifyVersions.py)** script automatically bumps versions
 ### Usage
 The script expects two arguments:
 
-`modifyVersions.py [version] {remove_snapshot, bump_to_snapshot}`
+`modifyVersions.py [version] {remove_snapshot, bump_to_snapshot, update_submodules}`
 
 * **version:** The version string for the current release. This will be used to determine which release branches should be changed (ex. 6.1.4)
 * **remove_snapshot**, **bump_to_version** or **update_submodules**: This determines which operation should be performed: 
