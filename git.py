@@ -229,6 +229,17 @@ def pushAndCreatePR(repo, title, body, currentBranch, targetBranch, outputURLToF
     if not outputURLToFile:
         return prLink  # Return PR URL
 
+def tagRepo(repo, tag):
+    print("Tagging repo %s with tag '%s'"%(repo, tag))
+    commands = []
+    repoPath = getRepoPath(repo)
+    commands.append('cd "%s"' % repoPath)
+    commands.append('git tag %s'%tag)
+    commands.append('git push origin %s'%tag)
+    code = call(" && ".join(commands), shell=True)
+    if code != 0:
+        print("Failed to tag repo, tag probably already exists")
+
 
 def deleteLocalRepo(repo):
     """ Deletes the local copy of the repo to force-remove all local changes """

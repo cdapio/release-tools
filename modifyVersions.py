@@ -35,7 +35,7 @@ reposFile.close()
 
 
 
-def getUserReponse(prompt):
+def getUserResponse(prompt):
     """ Helper function to get a yes/no response from the user """
 
     resp = input(prompt+'\n')
@@ -98,7 +98,7 @@ def removeSnapshot(repo, version):
         if beforeLength == afterLength:
             # If the pom file was not changed that means the version is already a non-SNAPSHOT version, ask the user if thats expected
             currentVersion = re.search(pomVersionRegex, pom, re.MULTILINE).groups()[0]
-            skipPom = getUserReponse(
+            skipPom = getUserResponse(
                 "POM file ('%s') is already set to a non-SNAPSHOT version (%s), is this expected? (Y/n)" % (prettyPomFile, currentVersion))
             if skipPom:
                 continue
@@ -114,7 +114,7 @@ def removeSnapshot(repo, version):
             cdapVersion = cdapVersionMatch.groups()[0]
             if cdapVersion.endswith("-SNAPSHOT"):
                 print("POM file ('%s') depends on a SNAPSHOT version of CDAP(%s). This is not allowed." % (prettyPomFile, cdapVersion))
-                autoUpdate = getUserReponse("Would you like to remove the SNAPSHOT from the CDAP version dependancy? "
+                autoUpdate = getUserResponse("Would you like to remove the SNAPSHOT from the CDAP version dependancy? "
                                             + "If you are unsure please consult the team, you can skip this repo for now by responding with 'N'. (Y/n)")
 
                 # If the user does not want to update this dependacy then we need to skip this repo, we do not allow a release with a SNAPSHOT dependancy
@@ -175,6 +175,7 @@ def bumpVersionToSnapshot(repo, version):
     git.checkoutBranch(repo, changeBranch, createBranch=True)
 
     changesMade = False
+    firstValidVersion = None
     pomFilePaths = glob.glob("/%s/**/pom.xml" % getRepoPath(repo), recursive=True)
     for pomFile in pomFilePaths:
         pom = ""
@@ -188,7 +189,7 @@ def bumpVersionToSnapshot(repo, version):
         if '-SNAPSHOT' in currentVersion:
             # Give the user the option to skip this POM file if they expected this
             prettyPomFile = pomFile.replace(os.getcwd(), '')
-            skipPom = getUserReponse(
+            skipPom = getUserResponse(
                 "POM file ('%s') is already set to a SNAPSHOT version (%s), is this expected? (Y/n)" % (prettyPomFile, currentVersion))
             if skipPom:
                 continue
@@ -197,6 +198,10 @@ def bumpVersionToSnapshot(repo, version):
             print("This script expects all repos to be in a non-SNAPSHOT stage. All changes to this repo (%s) will be reverted and it will be skipped." % repo)
             git.deleteLocalRepo(repo)
             return
+
+        #Keep track of the first valid version we see for tagging step later on
+        if firstValidVersion is None:
+            firstValidVersion = currentVersion
 
         # Calculate new version and replace it
         currentVersionParts = currentVersion.split(".")
@@ -219,6 +224,10 @@ def bumpVersionToSnapshot(repo, version):
     git.pushAndCreatePR(repo, "[RELEASE-%s] Bump to SNAPSHOT" % version,
                     "This is an automated PR to bump artifact versions to SNAPSHOT after a release is completed.", changeBranch, releaseBranch)
 
+    #Tag the release branch in the repo with the current version
+    git.checkoutBranch(repo, releaseBranch)
+    git.tagRepo(repo, 'v'+firstValidVersion)
+        
 
 def updateSubmodules(version):
     """ This function updates submodules in hydrator-plugins and cdap-build and creates PR for them """
@@ -233,6 +242,8 @@ def updateSubmodules(version):
         else:
             versionParts = version.split(".")
             releaseBranch = "release/%s.%s" % (versionParts[0], versionParts[1])
+
+        printHeader("Updating submodules in %s"%repo)
         print("Setting up for submodule update in repo '%s'" % repo)
         git.cloneRepo(repo)
         git.checkoutBranch(repo, releaseBranch)
@@ -310,7 +321,7 @@ def parseArgs():
                         help='Version string of this release. Ex. 6.1.4')
 
     parser.add_argument('operation',
-                        choices=['remove_snapshot', 'bump_to_snapshot'],
+                        choices=['remove_snapshot', 'bump_to_snapshot', 'update_submodules'],
                         help='remove_snapshot will update all versions to the next non-SNAPSHOT version (ex. 6.1.4-SNAPSHOT -> 6.1.4). '
                         + 'bump_to_snapshot will update all versions to the SNAPSHOT version (ex. 6.1.4 -> 6.1.5-SNAPSHOT)')
 
@@ -323,7 +334,7 @@ def parseArgs():
 
 
 def main():
-    global quiteMode
+    global quiteMode, releaseBranchMap, submoduleRepos
     args = parseArgs()
     quiteMode = not args.verbose
     if path.exists(outputPRsFilename):
@@ -334,17 +345,20 @@ def main():
     git.setPROutputFilename(outputPRsFilename)
     git.setRepos(repos)
     releaseBranchMap, submoduleRepos = git.mapBranchVersions(version)
-    for repo in repos:
-        try:
-            if args.operation == 'remove_snapshot':
-                removeSnapshot(repo, version)
-            else:
-                bumpVersionToSnapshot(repo, version)
-        except Exception as e:
-            continue  # Error logging should have been done before getting to this stage
+    if args.operation != 'update_submodules':
+        for repo in repos:
+            try:
+                if args.operation == 'remove_snapshot':
+                    removeSnapshot(repo, version)
+                else:
+                    bumpVersionToSnapshot(repo, version)
+            except Exception as e:
+                continue  # Error logging should have been done before getting to this stage
 
-    print("PRs for approval:")
-    call("cat %s" % outputPRsFilename, shell=True)
+        print("PRs for approval:")
+        call("cat %s" % outputPRsFilename, shell=True)
+
+        getUserResponse("Please review and merge all PRs listed above then press Enter to proceed with updating submodules")
     updateSubmodules(version)
 
 
