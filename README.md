@@ -56,7 +56,7 @@ The script expects two argument with one optional flag:
 `generateReleaseNotes.py [version] [username] [--output OUTPUT]`
 
 * **version:** The version string for the current release. Only JIRA tickets with a "Fix Version" matching this version will be retrieved (ex. 6.1.4)
-* **username:** The username to use for authenticating with JIRA to fetch the release notes. You will be promoted for the password once the script is running. 
+* **username:** The username to use for authenticating with JIRA to fetch the release notes. You will be promoted for an API token once the script is running. 
 * **--output** (optional): Specify an output path/file for the generated release notes. Default behavior is to generate a `releaseNotes.rst` file in the current directory.
 
 ## Collecting Third-Party Copyright Licenses
