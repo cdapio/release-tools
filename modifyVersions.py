@@ -358,7 +358,7 @@ def main():
         print("PRs for approval:")
         call("cat %s" % outputPRsFilename, shell=True)
 
-        getUserResponse("Please review and merge all PRs listed above then press Enter to proceed with updating submodules")
+        input("Please review and merge all PRs listed above then press Enter to proceed with updating submodules")
     updateSubmodules(version)
 
 
