@@ -138,7 +138,7 @@ def checkoutBranch(repo, branch, createBranch=False):
         commands.clear()
         commands.append('cd "%s"' % repoPath)
         commands.append('BRANCH=`git rev-parse --abbrev-ref HEAD`')
-        commands.append("../../gh pr checkout %s" % branch)
+        commands.append("gh pr checkout %s" % branch)
         commands.append("git checkout $BRANCH")
         commands = [
             c + " > /dev/null 2>&1" if quiteMode else c for c in commands]
@@ -151,7 +151,7 @@ def checkoutBranch(repo, branch, createBranch=False):
             input("To view this PR in a browser, press Enter...")
             commands.clear()
             commands.append('cd "%s"' % repoPath)
-            commands.append("../../gh pr view --web %s >> ../../%s" % (branch, outputPRsFilename))
+            commands.append("gh pr view --web %s >> ../../%s" % (branch, outputPRsFilename))
             commands = [c + "> /dev/null" if quiteMode else c for c in commands]
             call(" && ".join(commands), shell=True)
             isPRCorrect = getUserReponse("Does the PR contain the correct changes? (Y/n)")
@@ -163,7 +163,7 @@ def checkoutBranch(repo, branch, createBranch=False):
             print("Closing incorrect PR")
             commands.clear()
             commands.append('cd "%s"' % repoPath)
-            commands.append("../../gh pr close %s" % branch)
+            commands.append("gh pr close %s" % branch)
             commands = [c + "> /dev/null" if quiteMode else c for c in commands]
             call(" && ".join(commands), shell=True)
 
@@ -220,11 +220,11 @@ def pushAndCreatePR(repo, title, body, currentBranch, targetBranch, outputURLToF
     commands.append('cd "%s"' % repoPath)
     if outputURLToFile:
         commands.append("git push origin %s -f" % currentBranch)
-        commands.append('../../gh pr create --title "%s" --body "%s" --base %s --label automated-release >> ../../%s' %
+        commands.append('gh pr create --title "%s" --body "%s" --base %s --label automated-release >> ../../%s' %
                         (title, body, targetBranch, outputPRsFilename))
     else:
         commands.append("git push origin %s -f > /dev/null 2>&1" % currentBranch)
-        commands.append('../../gh pr create --title "%s" --body "%s" --base %s --label automated-release' % (title, body, targetBranch))
+        commands.append('gh pr create --title "%s" --body "%s" --base %s --label automated-release' % (title, body, targetBranch))
     prLink = subprocess.check_output(" && ".join(commands), shell=True).decode('utf-8')
     if not outputURLToFile:
         return prLink  # Return PR URL
