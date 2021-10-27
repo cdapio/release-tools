@@ -232,7 +232,7 @@ def bumpVersionToSnapshot(repo, version):
 def updateSubmodules(version):
     """ This function updates submodules in hydrator-plugins and cdap-build and creates PR for them """
 
-    submoduleRepos = ['cdapio/hydrator-plugins', 'cdapio/cdap-build']
+    submoduleRepos = ['cdapio/hydrator-plugins','cdapio/cdap','cdapio/cdap-build']
     for repo in submoduleRepos:
 
         # Construct release branch name and checkout the branches

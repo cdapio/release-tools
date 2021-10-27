@@ -14,3 +14,4 @@ data-integrations/delta
 data-integrations/bigquery-delta-plugins
 data-integrations/database-delta-plugins
 data-integrations/datastream-delta-plugins
+cdapio/cdap-ui

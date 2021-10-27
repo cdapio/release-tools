@@ -148,30 +148,49 @@ def getLicenseFromGithub(url, redirectURL=None):
     else:
         apiRequestRegexSub = r'https://api.github.com/repos/\1/\2/license'
         githubUrl = re.sub(githubURLRegex, apiRequestRegexSub, url)
-    resp = requests.get(githubUrl, headers=getGithubAuthHeader())
+    try:
+      resp = requests.get(githubUrl, headers=getGithubAuthHeader())
 
-    # This should not happen if the user is authenticated unless we are processing >4000 licenses
-    if resp.status_code == 403:
-        print("WARN: Hit GitHub rate limit. Sleeping for 5 minutes...")
-        time.sleep(5*60)
-        return getLicenseFromGithub(url)
+      # This should not happen if the user is authenticated unless we are processing >4000 licenses
+      if resp.status_code == 403:
+          print("WARN: Hit GitHub rate limit. Sleeping for 5 minutes...")
+          time.sleep(5*60)
+          return getLicenseFromGithub(url)
 
-    # If the request fails then quit
-    if resp.status_code != 200:
-        return None
+      # If the request fails then quit
+      if resp.status_code != 200:
+          return None
 
-    # Extract the base64 encoded license from the response
-    respJson = resp.json()
-    if 'content' in respJson:
-        return respJson['content']  # base64 encoded
+      # Extract the base64 encoded license from the response
+      respJson = resp.json()
+      if 'content' in respJson:
+          return respJson['content']  # base64 encoded
 
-    # If Github responds with a redirect url
-    if 'message' in respJson and respJson['message'] == 'Moved Permanently':
-        return getLicenseFromGithub(url, redirectURL=resp['url'])
+      # If Github responds with a redirect url
+      if 'message' in respJson and respJson['message'] == 'Moved Permanently':
+          return getLicenseFromGithub(url, redirectURL=resp['url'])
+    except:
+      print("unexpected error")
+      return None
 
     # Should never get here
     return None
-
+    
+def getLicenseFromUrl(url):
+    if url is None:
+        return None
+    resp = getLicenseFromGithub(url)
+    if resp is not None:
+        return resp
+    #attempt a text download
+    try:
+         resp = requests.get(url)
+         if resp.status_code == 200 and resp.headers['content-type'] == "text/plain":  
+             return resp.text
+         return None
+    except:
+      return None
+    
 
 def getUrlFromLocalMap(artifact):
     """ Helper function to retreive URL for a given artifact from the local map """
@@ -202,14 +221,14 @@ def createArtifactLicenseMap(data):
 
         # Attempt to get the license using the URL from the data
         print("DEBUG: %s - Downloading license from mvn generated url %s" % (artifact, url))
-        licenseContents = getLicenseFromGithub(url)
+        licenseContents = getLicenseFromUrl(url)
 
         # If we failed to get the license from that url then try the url from the local map
         if licenseContents is None:
             newUrl = getUrlFromLocalMap(artifact)
             print("DEBUG: %s - Unable to fetch license from mvn generated url, falling back to local map." % artifact)
             print("DEBUG: %s - Downloading license from local map url %s" % (artifact, newUrl))
-            licenseContents = getLicenseFromGithub(newUrl)
+            licenseContents = getLicenseFromUrl(newUrl)
 
             # If we failed to get the license from the local map then skip it
             if licenseContents is None:
@@ -245,11 +264,11 @@ def createCDAPLicenses(version, existingLicensesMap):
     commands.append('mvn clean install license:add-third-party -DskipTests')  # Generate the data files
     commands.append('rm ../%s; find . | grep THIRD-PARTY.txt | xargs cat >> ../%s'
                     % (combinedFilename, combinedFilename))  # Combine all of the files into one file for processing
-    code = call(" && ".join(commands), shell=True)
-    if code != 0:
-        sys.stderr.write("ERROR: Failed to generate data for third party dependencies in CDAP." +
-                         " Please manually resolve the issue and run the script again.\n")
-        sys.exit(1)
+    #code = call(" && ".join(commands), shell=True)
+    #if code != 0:
+        #sys.stderr.write("ERROR: Failed to generate data for third party dependencies in CDAP." +
+                         #" Please manually resolve the issue and run the script again.\n")
+        #sys.exit(1)
 
     # Read the file with the combined data from all repos
     combinedFile = open(path.join(workspaceFolder, combinedFilename))
@@ -282,8 +301,12 @@ def createCDAPLicenses(version, existingLicensesMap):
             continue
 
         # Add it to the map and the missingLicenses list which will be reported to the user later
-        artifactURLMap[artifact] = None
-        missingLicenses.append('%s\t%s\t%s' % (artifact, 'no url defined', lic))
+        localURL = getUrlFromLocalMap(artifact)
+        artifactURLMap[artifact] = localURL
+        if localURL is not None:
+             parsedData.append((artifact,localURL,lic))
+        else:
+             missingLicenses.append('%s\t%s\t%s' % (artifact, 'no url defined', lic))
 
     # Clean the raw data and fetch the base64 encoded license contents
     dataToBeFetched = []
