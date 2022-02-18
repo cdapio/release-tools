@@ -1,6 +1,7 @@
 antlr:antlr,https://github.com/antlr/antlr4/blob/master/LICENSE.txt
 aopalliance:aopalliance,https://github.com/hoverruan/aopalliance/blob/master/aopalliance/src/main/org/aopalliance/aop/Advice.java
 asm:asm,https://github.com/runelite/asm/blob/master/asm/LICENSE.txt
+org.ow2.asm:asm-all,https://gitlab.ow2.org/asm/asm/-/blob/master/LICENSE.txt
 backport-util-concurrent:backport-util-concurrent,https://github.com/spring-projects/spring-net-threading/blob/master/lib/java/backport-util-concurrent-3.1-src/license.html
 bcel:bcel,https://www.apache.org/licenses/LICENSE-2.0.txt
 bouncycastle:bcprov-jdk15,https://github.com/bcgit/bc-java/blob/master/LICENSE.html

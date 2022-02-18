@@ -264,11 +264,11 @@ def createCDAPLicenses(version, existingLicensesMap):
     commands.append('mvn clean install license:add-third-party -DskipTests')  # Generate the data files
     commands.append('rm ../%s; find . | grep THIRD-PARTY.txt | xargs cat >> ../%s'
                     % (combinedFilename, combinedFilename))  # Combine all of the files into one file for processing
-    #code = call(" && ".join(commands), shell=True)
-    #if code != 0:
-        #sys.stderr.write("ERROR: Failed to generate data for third party dependencies in CDAP." +
-                         #" Please manually resolve the issue and run the script again.\n")
-        #sys.exit(1)
+    code = call(" && ".join(commands), shell=True)
+    if code != 0:
+        sys.stderr.write("ERROR: Failed to generate data for third party dependencies in CDAP." +
+                         " Please manually resolve the issue and run the script again.\n")
+        sys.exit(1)
 
     # Read the file with the combined data from all repos
     combinedFile = open(path.join(workspaceFolder, combinedFilename))
@@ -405,7 +405,11 @@ def createUILicenses(version, existingLicensesMap):
     commands.append('export NVM_DIR="$HOME/.nvm"')  # setup env for nvm commands
     commands.append('[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"')  # setup env for nvm commands
     commands.append('nvm use node')  # tell nvm to use the node version that was just installed
-    commands.append('npm install -g license-checker ')  # Install the license-checker module
+    commands.append('sudo npm install -g license-checker ')  # Install the license-checker module
+    commands.append('sudo npm install -g pkg-config ') # Install the pkg-config module
+    commands.append('sudo npm install -g bower ') # Install the bower module
+    commands.append('sudo npm install -g yarn ') # Install the yarn module
+    commands.append('sudo npm install -g gh ') # Install the gh module
     commands.append('yarn install --production')  # Install UI dependancies
     commands.append('bower install')  # Install UI dependancies
     subprocess.call(" && ".join(commands), shell=True)
