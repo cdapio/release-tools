@@ -16,3 +16,5 @@ data-integrations/datastream-delta-plugins
 data-integrations/delta-transformation
 data-integrations/database-plugins
 cdapio/cdap-ui
+cdapio/metrics-writer-extension
+cdapio/events-writer-extension
