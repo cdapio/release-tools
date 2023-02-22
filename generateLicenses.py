@@ -261,7 +261,7 @@ def createCDAPLicenses(version, existingLicensesMap):
     commands = []
     commands.append('cd "%s"' % repoPath)
     commands.append('git submodule update --init --recursive')  # Make sure all sudmoules are loaded
-    commands.append('mvn clean install license:add-third-party -DskipTests')  # Generate the data files
+    commands.append('mvn clean install license:add-third-party -DskipTests -Ddocker.skip')  # Generate the data files
     commands.append('rm ../%s; find . | grep THIRD-PARTY.txt | xargs cat >> ../%s'
                     % (combinedFilename, combinedFilename))  # Combine all of the files into one file for processing
     code = call(" && ".join(commands), shell=True)
