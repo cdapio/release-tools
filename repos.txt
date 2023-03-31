@@ -18,3 +18,4 @@ data-integrations/database-plugins
 cdapio/cdap-ui
 cdapio/metrics-writer-extension
 cdapio/events-writer-extension
+cdapio/cdap-e2e-tests
